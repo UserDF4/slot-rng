@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>50:50 RNG Slot Machine</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti for Win Celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Press+Start+2P&family=Inter:wght@400;600;800&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at center, #1b1035 0%, #080314 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .font-orbitron { font-family: 'Orbitron', sans-serif; }
+    .font-retro { font-family: 'Press Start 2P', monospace; }
+
+    /* Machine Bevel & metallic gradient */
+    .machine-body {
+      background: linear-gradient(145deg, #2a2238 0%, #151022 50%, #0d0918 100%);
+      box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.8),
+        inset 0 2px 3px rgba(255, 255, 255, 0.15),
+        inset 0 -5px 15px rgba(0, 0, 0, 0.8);
+    }
+
+    .metallic-rim {
+      background: linear-gradient(135deg, #ffd700 0%, #b8860b 30%, #fff8dc 50%, #996515 80%, #ffd700 100%);
+    }
+
+    .chrome-trim {
+      background: linear-gradient(180deg, #e6e6e6 0%, #888888 45%, #ffffff 50%, #444444 80%, #aaaaaa 100%);
+    }
+
+    /* Slot Reel Window */
+    .reel-window {
+      background: #000;
+      box-shadow: inset 0 10px 20px rgba(0,0,0,0.9), inset 0 -10px 20px rgba(0,0,0,0.9);
+      perspective: 1000px;
+    }
+
+    .reel-container {
+      position: relative;
+      height: 120px;
+      overflow: hidden;
+      background: linear-gradient(to bottom, #111, #fff 40%, #fff 60%, #111);
+      border-radius: 8px;
+      box-shadow: inset 0 0 15px rgba(0,0,0,0.8);
+    }
+
+    .reel-strip {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.1s linear;
+      will-change: transform;
+    }
+
+    .reel-number {
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 4.5rem;
+      font-weight: 900;
+      color: #111;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Spinning blurred state */
+    .spinning {
+      filter: blur(3px);
+    }
+
+    /* Neon LED Glows */
+    .neon-green-glow {
+      color: #10B981;
+      text-shadow: 0 0 8px rgba(16, 185, 129, 0.8), 0 0 20px rgba(16, 185, 129, 0.5);
+    }
+
+    .neon-red-glow {
+      color: #EF4444;
+      text-shadow: 0 0 8px rgba(239, 68, 68, 0.8), 0 0 20px rgba(239, 68, 68, 0.5);
+    }
+
+    /* Lever Mechanical Styling */
+    .lever-container {
+      position: absolute;
+      right: -55px;
+      top: 100px;
+      height: 260px;
+      width: 60px;
+      cursor: pointer;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .lever-base {
+      width: 28px;
+      height: 80px;
+      background: linear-gradient(90deg, #444, #888, #222);
+      border-radius: 0 10px 10px 0;
+      position: absolute;
+      left: 0;
+      top: 90px;
+      box-shadow: 3px 5px 10px rgba(0,0,0,0.6);
+    }
+
+    .lever-shaft {
+      width: 14px;
+      height: 160px;
+      background: linear-gradient(90deg, #999 0%, #fff 50%, #555 100%);
+      position: absolute;
+      left: 7px;
+      top: 20px;
+      transform-origin: bottom center;
+      transition: transform 0.15s ease-out;
+      border-radius: 6px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.5);
+    }
+
+    .lever-ball {
+      width: 46px;
+      height: 46px;
+      background: radial-gradient(circle at 30% 30%, #ff5252, #a70000, #4a0000);
+      border-radius: 50%;
+      position: absolute;
+      top: -24px;
+      left: -16px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(0,0,0,0.6);
+      transition: transform 0.1s;
+    }
+
+    .lever-ball:hover {
+      transform: scale(1.08);
+    }
+
+    /* Lever Pull Animation Class */
+    .lever-pulled .lever-shaft {
+      transform: rotateX(150deg) scaleY(0.85);
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0d0918;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #3b2d54;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center p-4 min-h-screen text-white">
+
+  <!-- Main Cabinet Container -->
+  <div class="relative w-full max-w-lg mx-auto">
+    
+    <!-- SLOT MACHINE BODY -->
+    <div class="machine-body rounded-3xl p-6 md:p-8 border-4 border-amber-500/40 relative z-10">
+      
+      <!-- TOP CASINO HEADER -->
+      <div class="metallic-rim p-1 rounded-2xl mb-6 shadow-lg">
+        <div class="bg-gray-950 rounded-xl p-3 text-center border border-amber-300/30">
+          <div class="flex justify-between items-center px-3 mb-1">
+            <i class="fa-solid fa-star text-amber-400 text-xs animate-pulse"></i>
+              <h1 class="text-2xl md:text-3xl font-orbitron font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500">
+            LUCKY TRIPLE
+          </h1>  
+            <i class="fa-solid fa-star text-amber-400 text-xs animate-pulse"></i>
+          </div>
+          
+        </div>
+      </div>
+
+      <!-- MAIN DISPLAY SCREEN / REELS WINDOW -->
+      <div class="chrome-trim p-2 rounded-2xl mb-6">
+        <div class="reel-window bg-black p-4 rounded-xl border-2 border-gray-800">
+          
+          <!-- Outcome Banner (+$$$ / -$$$) -->
+          <div id="outcome-display" class="h-12 flex items-center justify-center mb-3 bg-gray-900/90 rounded-lg border border-gray-800">
+            <span class="text-gray-500 font-orbitron font-bold text-xl tracking-widest uppercase">PULL LEVER TO SPIN</span>
+          </div>
+
+          <!-- 3 DIGIT REELS -->
+          <div class="grid grid-cols-3 gap-3 md:gap-4 my-2">
+            
+            <!-- Reel 1 -->
+            <div class="reel-container border-2 border-amber-500/50">
+              <div id="reel-1" class="reel-strip">
+                <!-- Dynamically generated digits -->
+              </div>
+            </div>
+
+            <!-- Reel 2 -->
+            <div class="reel-container border-2 border-amber-500/50">
+              <div id="reel-2" class="reel-strip">
+                <!-- Dynamically generated digits -->
+              </div>
+            </div>
+
+            <!-- Reel 3 -->
+            <div class="reel-container border-2 border-amber-500/50">
+              <div id="reel-3" class="reel-strip">
+                <!-- Dynamically generated digits -->
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Win/Loss Logic Indicator Subtext -->
+          <div class="flex justify-between items-center text-xs text-gray-400 font-mono mt-3 px-1">
+            
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTROL PANEL / SPIN BUTTON -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-gray-900/80 p-4 rounded-2xl border border-gray-800">
+
+        <!-- Big Front Spin Button -->
+        <button id="spin-btn" class="w-full py-3.5 px-6 rounded-xl font-orbitron font-black text-lg tracking-wider text-gray-900 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-400 active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.5)] border-2 border-yellow-100 flex items-center justify-center gap-2">
+          <i class="fa-solid fa-rotate text-gray-900"></i> SPIN NOW
+        </button>
+      </div>
+
+      <!-- STATS PANEL -->
+      <div class="mt-6 bg-black/60 rounded-xl p-4 border border-purple-900/50">
+        <h2 class="text-xs font-orbitron font-bold text-purple-300 tracking-wider uppercase mb-3 text-center border-b border-purple-900/50 pb-1">
+          RNG Performance Statistics
+        </h2>
+        <div class="grid grid-cols-4 gap-2 text-center">
+          
+          <div class="bg-gray-900/80 p-2 rounded-lg border border-gray-800">
+            <div class="text-[10px] text-gray-400 uppercase font-semibold">Spins</div>
+            <div id="stat-spins" class="font-orbitron font-bold text-lg text-white">0</div>
+          </div>
+
+          <div class="bg-gray-900/80 p-2 rounded-lg border border-emerald-950">
+            <div class="text-[10px] text-emerald-400 uppercase font-semibold">Wins (+$$$)</div>
+            <div id="stat-wins" class="font-orbitron font-bold text-lg text-emerald-400">0</div>
+          </div>
+
+          <div class="bg-gray-900/80 p-2 rounded-lg border border-red-950">
+            <div class="text-[10px] text-red-400 uppercase font-semibold">Losses (-$$$)</div>
+            <div id="stat-losses" class="font-orbitron font-bold text-lg text-red-400">0</div>
+          </div>
+
+          <div class="bg-gray-900/80 p-2 rounded-lg border border-amber-950">
+            <div class="text-[10px] text-amber-400 uppercase font-semibold">Win Rate</div>
+            <div id="stat-rate" class="font-orbitron font-bold text-lg text-amber-300">0.0%</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div> <!-- End Slot Machine Body -->
+
+    <!-- MECHANICAL LEVER (SIDE ARM) -->
+    <div id="mechanical-lever" class="lever-container hidden sm:block" title="Click or Pull to Spin!">
+      <div class="lever-base"></div>
+      <div class="lever-shaft">
+        <div class="lever-ball"></div>
+      </div>
+    </div>
+
+  </div> <!-- End Container -->
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // --- GAME STATE & CONSTANTS ---
+    const REEL_HEIGHT = 120; // Height of each number cell
+    let isSpinning = false;
+    let totalSpins = 0;
+    let totalWins = 0;
+    let totalLosses = 0;
+
+    // DOM Elements
+    const reel1El = document.getElementById('reel-1');
+    const reel2El = document.getElementById('reel-2');
+    const reel3El = document.getElementById('reel-3');
+    const outcomeDisplay = document.getElementById('outcome-display');
+    const spinBtn = document.getElementById('spin-btn');
+    const leverEl = document.getElementById('mechanical-lever');
+
+    // Stat Elements
+    const statSpinsEl = document.getElementById('stat-spins');
+    const statWinsEl = document.getElementById('stat-wins');
+    const statLossesEl = document.getElementById('stat-losses');
+    const statRateEl = document.getElementById('stat-rate');
+
+    // Build Reel Strip HTML
+    function buildReelStrip(element) {
+      // Create a sequence of digits 1-9 repeated multiple times for infinite roll look
+      let html = '';
+      for (let i = 0; i < 30; i++) {
+        for (let num = 1; num <= 9; num++) {
+          html += `<div class="reel-number">${num}</div>`;
+        }
+      }
+      element.innerHTML = html;
+    }
+
+    buildReelStrip(reel1El);
+    buildReelStrip(reel2El);
+    buildReelStrip(reel3El);
+
+    // --- 50:50 RNG LOGIC (DIRECT FROM C++ ALGORITHM) ---
+    function generate5050RNG() {
+      // 50% Chance Win (0 or 1)
+      const isWin = Math.random() < 0.5;
+      let num1, num2, num3;
+
+      if (isWin) {
+        // Output 3 identical digits (111 to 999)
+        const digit = Math.floor(Math.random() * 9) + 1;
+        num1 = digit;
+        num2 = digit;
+        num3 = digit;
+      } else {
+        // Generate 3 numbers ensuring they are NOT all identical
+        num1 = Math.floor(Math.random() * 9) + 1;
+        num2 = Math.floor(Math.random() * 9) + 1;
+        num3 = Math.floor(Math.random() * 9) + 1;
+
+        // If all 3 accidentally match, break match
+        if (num1 === num2 && num2 === num3) {
+          num3 = (num3 % 9) + 1;
+        }
+      }
+
+      return { num1, num2, num3, isWin };
+    }
+
+    // --- SPINNING ANIMATION & CONTROL ---
+    function spin() {
+      if (isSpinning) return;
+
+      isSpinning = true;
+      spinBtn.disabled = true;
+      spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+      // Trigger Mechanical Lever Animation
+      leverEl.classList.add('lever-pulled');
+      setTimeout(() => leverEl.classList.remove('lever-pulled'), 300);
+
+      // Reset outcome screen
+      outcomeDisplay.innerHTML = `
+        <span class="text-amber-400 font-orbitron font-bold text-xl tracking-widest animate-pulse">
+          SPINNING...
+        </span>
+      `;
+
+      // Get numbers from 50:50 RNG logic
+      const result = generate5050RNG();
+      const targetNumbers = [result.num1, result.num2, result.num3];
+      const reelEls = [reel1El, reel2El, reel3El];
+
+      // Add blur effect
+      reelEls.forEach(el => el.classList.add('spinning'));
+
+      // Animate each reel with staggered stopping times
+      const delays = [1200, 1700, 2200];
+      let completedReels = 0;
+
+      reelEls.forEach((reel, index) => {
+        const targetDigit = targetNumbers[index];
+        // Calculate offset position for target digit near the end of strip
+        const targetIndex = 20 * 9 + (targetDigit - 1);
+        const targetY = -(targetIndex * REEL_HEIGHT);
+
+        // Smooth CSS Transform
+        setTimeout(() => {
+          reel.classList.remove('spinning');
+          reel.style.transition = 'transform 1.2s cubic-bezier(0.1, 0.9, 0.2, 1.0)';
+          reel.style.transform = `translateY(${targetY}px)`;
+
+          completedReels++;
+          if (completedReels === 3) {
+            finalizeResult(result);
+          }
+        }, delays[index]);
+      });
+    }
+
+    // --- FINALIZE OUTCOME & UPDATE STATS ---
+    function finalizeResult(result) {
+      isSpinning = false;
+      spinBtn.disabled = false;
+      spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+      totalSpins++;
+
+      if (result.isWin) {
+        totalWins++;
+
+        outcomeDisplay.innerHTML = `
+          <span class="neon-green-glow font-orbitron font-black text-3xl tracking-widest animate-bounce">
+            +$$$ WIN!
+          </span>
+        `;
+
+        // Confetti Celebration
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      } else {
+        totalLosses++;
+
+        outcomeDisplay.innerHTML = `
+          <span class="neon-red-glow font-orbitron font-black text-3xl tracking-widest">
+            -$$$ LOSE
+          </span>
+        `;
+      }
+
+      // Update Statistics Display
+      statSpinsEl.textContent = totalSpins;
+      statWinsEl.textContent = totalWins;
+      statLossesEl.textContent = totalLosses;
+      const winRate = ((totalWins / totalSpins) * 100).toFixed(1);
+      statRateEl.textContent = `${winRate}%`;
+    }
+
+    // --- EVENT LISTENERS ---
+    spinBtn.addEventListener('click', spin);
+    leverEl.addEventListener('click', spin);
+
+    // Initial position setup for reels
+    [reel1El, reel2El, reel3El].forEach(reel => {
+      reel.style.transform = `translateY(0px)`;
+    });
+  </script>
+</body>
+</html>
