@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>50:50 Slot</title>
+  <title>50:50 RNG Slot Machine</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Canvas Confetti for Win Celebrations -->
@@ -160,6 +160,74 @@
       background: #3b2d54;
       border-radius: 3px;
     }
+
+    body.light-theme {
+      background: radial-gradient(circle at center, #f8fafc 0%, #dbe4f0 100%);
+      color: #111827;
+    }
+
+    body.light-theme .machine-body {
+      background: linear-gradient(145deg, #eef2ff 0%, #cbd5e1 50%, #94a3b8 100%);
+      box-shadow: 0 20px 50px rgba(51, 65, 85, 0.35);
+    }
+
+    .settings-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(6px);
+    }
+
+    .settings-modal.open {
+      display: flex;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      flex: 0 0 auto;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      border-radius: 999px;
+      background: #4b5563;
+      transition: 0.2s;
+    }
+
+    .toggle-slider::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      border-radius: 50%;
+      background: white;
+      transition: 0.2s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: #f59e0b;
+    }
+
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(20px);
+    }
   </style>
 </head>
 <body class="flex flex-col items-center justify-center p-4 min-h-screen text-white">
@@ -175,10 +243,12 @@
         <div class="bg-gray-950 rounded-xl p-3 text-center border border-amber-300/30">
           <div class="flex justify-between items-center px-3 mb-1">
             <i class="fa-solid fa-star text-amber-400 text-xs animate-pulse"></i>
-              <h1 class="text-2xl md:text-3xl font-orbitron font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500">
-            LUCKY TRIPLE
-          </h1>  
-            <i class="fa-solid fa-star text-amber-400 text-xs animate-pulse"></i>
+            <h1 class="text-2xl md:text-3xl font-orbitron font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500">
+              LUCKY TRIPLE
+            </h1>
+            <button id="settings-btn" type="button" class="text-amber-400 hover:text-amber-200 transition-colors text-lg" title="Pengaturan" aria-label="Buka pengaturan">
+              <i class="fa-solid fa-gear"></i>
+            </button>
           </div>
           
         </div>
@@ -277,6 +347,72 @@
 
   </div> <!-- End Container -->
 
+  <!-- SETTINGS MODAL -->
+  <div id="settings-modal" class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="w-full max-w-sm rounded-2xl bg-gray-950 border border-amber-500/40 p-5 shadow-2xl">
+      <div class="flex items-center justify-between mb-5">
+        <h2 id="settings-title" class="font-orbitron font-bold text-lg text-amber-300">
+          <i class="fa-solid fa-sliders mr-2"></i>PENGATURAN
+        </h2>
+        <button id="settings-close" type="button" class="text-gray-400 hover:text-white text-xl" aria-label="Tutup pengaturan">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex items-center justify-between gap-4 rounded-xl bg-gray-900 p-4 border border-gray-800">
+          <div>
+            <div class="font-semibold">Suara</div>
+            <div class="text-xs text-gray-400">Efek suara saat hasil keluar</div>
+          </div>
+          <label class="toggle-switch">
+            <input id="setting-sound" type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-between gap-4 rounded-xl bg-gray-900 p-4 border border-gray-800">
+          <div>
+            <div class="font-semibold">Konfeti</div>
+            <div class="text-xs text-gray-400">Animasi saat mendapat kemenangan</div>
+          </div>
+          <label class="toggle-switch">
+            <input id="setting-confetti" type="checkbox" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="flex items-center justify-between gap-4 rounded-xl bg-gray-900 p-4 border border-gray-800">
+          <div>
+            <div class="font-semibold">Mode Terang</div>
+            <div class="text-xs text-gray-400">Ganti tampilan aplikasi</div>
+          </div>
+          <label class="toggle-switch">
+            <input id="setting-theme" type="checkbox">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="rounded-xl bg-gray-900 p-4 border border-gray-800">
+          <div class="flex items-center justify-between mb-3">
+            <div>
+              <div class="font-semibold">Persentase Kemenangan</div>
+              <div class="text-xs text-gray-400">Peluang hasil menang</div>
+            </div>
+            <span id="win-chance-value" class="font-orbitron font-bold text-amber-300">50%</span>
+          </div>
+          <input id="setting-win-chance" type="range" min="0" max="100" step="1" value="50"
+            class="w-full accent-amber-400 cursor-pointer">
+        </div>
+
+        <button id="reset-stats-btn" type="button"
+          class="w-full py-3 rounded-xl font-orbitron font-bold text-sm text-red-300 bg-red-950/60 border border-red-700/50 hover:bg-red-900/70 active:scale-[0.98] transition-all">
+          <i class="fa-solid fa-arrow-rotate-left mr-2"></i>RESET STATISTIK
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- JAVASCRIPT LOGIC -->
   <script>
     // --- GAME STATE & CONSTANTS ---
@@ -300,6 +436,68 @@
     const statLossesEl = document.getElementById('stat-losses');
     const statRateEl = document.getElementById('stat-rate');
 
+    // Settings
+    const settingsModal = document.getElementById('settings-modal');
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsClose = document.getElementById('settings-close');
+    const soundSetting = document.getElementById('setting-sound');
+    const confettiSetting = document.getElementById('setting-confetti');
+    const themeSetting = document.getElementById('setting-theme');
+    const winChanceSetting = document.getElementById('setting-win-chance');
+    const winChanceValue = document.getElementById('win-chance-value');
+    const resetStatsBtn = document.getElementById('reset-stats-btn');
+
+    let savedSettings = {};
+    try {
+      savedSettings = JSON.parse(localStorage.getItem('luckyTripleSettings') || '{}');
+    } catch (error) {
+      savedSettings = {};
+    }
+    const settings = {
+      sound: savedSettings.sound !== false,
+      confetti: savedSettings.confetti !== false,
+      lightTheme: savedSettings.lightTheme === true,
+      winChance: Number.isFinite(Number(savedSettings.winChance))
+        ? Math.min(100, Math.max(0, Number(savedSettings.winChance)))
+        : 50
+    };
+
+    soundSetting.checked = settings.sound;
+    confettiSetting.checked = settings.confetti;
+    themeSetting.checked = settings.lightTheme;
+    winChanceSetting.value = settings.winChance;
+    winChanceValue.textContent = `${settings.winChance}%`;
+    document.body.classList.toggle('light-theme', settings.lightTheme);
+
+    function saveSettings() {
+      settings.sound = soundSetting.checked;
+      settings.confetti = confettiSetting.checked;
+      settings.lightTheme = themeSetting.checked;
+      settings.winChance = Number(winChanceSetting.value);
+      winChanceValue.textContent = `${settings.winChance}%`;
+      document.body.classList.toggle('light-theme', settings.lightTheme);
+      localStorage.setItem('luckyTripleSettings', JSON.stringify(settings));
+    }
+
+    function playSpinSound(isWin) {
+      if (!settings.sound) return;
+
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+
+      const context = new AudioContext();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(isWin ? 880 : 220, context.currentTime);
+      gain.gain.setValueAtTime(0.08, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.25);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.25);
+    }
+
     // Build Reel Strip HTML
     function buildReelStrip(element) {
       // Create a sequence of digits 1-9 repeated multiple times for infinite roll look
@@ -316,10 +514,9 @@
     buildReelStrip(reel2El);
     buildReelStrip(reel3El);
 
-    // --- 50:50 RNG LOGIC (DIRECT FROM C++ ALGORITHM) ---
+    // --- CONFIGURABLE WIN-RATE RNG LOGIC ---
     function generate5050RNG() {
-      // 50% Chance Win (0 or 1)
-      const isWin = Math.random() < 0.5;
+      const isWin = Math.random() < (settings.winChance / 100);
       let num1, num2, num3;
 
       if (isWin) {
@@ -411,14 +608,19 @@
           </span>
         `;
 
+        playSpinSound(true);
+
         // Confetti Celebration
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
+        if (settings.confetti && typeof confetti === 'function') {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        }
       } else {
         totalLosses++;
+        playSpinSound(false);
 
         outcomeDisplay.innerHTML = `
           <span class="neon-red-glow font-orbitron font-black text-3xl tracking-widest">
@@ -438,6 +640,34 @@
     // --- EVENT LISTENERS ---
     spinBtn.addEventListener('click', spin);
     leverEl.addEventListener('click', spin);
+    settingsBtn.addEventListener('click', () => settingsModal.classList.add('open'));
+    settingsClose.addEventListener('click', () => settingsModal.classList.remove('open'));
+    settingsModal.addEventListener('click', event => {
+      if (event.target === settingsModal) settingsModal.classList.remove('open');
+    });
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') settingsModal.classList.remove('open');
+    });
+    soundSetting.addEventListener('change', saveSettings);
+    confettiSetting.addEventListener('change', saveSettings);
+    themeSetting.addEventListener('change', saveSettings);
+    winChanceSetting.addEventListener('input', saveSettings);
+    resetStatsBtn.addEventListener('click', () => {
+      if (!window.confirm('Reset semua statistik permainan?')) return;
+
+      totalSpins = 0;
+      totalWins = 0;
+      totalLosses = 0;
+      statSpinsEl.textContent = '0';
+      statWinsEl.textContent = '0';
+      statLossesEl.textContent = '0';
+      statRateEl.textContent = '0.0%';
+      outcomeDisplay.innerHTML = `
+        <span class="text-gray-500 font-orbitron font-bold text-xl tracking-widest uppercase">
+          PULL LEVER TO SPIN
+        </span>
+      `;
+    });
 
     // Initial position setup for reels
     [reel1El, reel2El, reel3El].forEach(reel => {
